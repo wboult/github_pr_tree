@@ -126,14 +126,14 @@ export const createFileTree = (filter = EMPTY_FILTER) => {
     diffElements: []
   }
 
-  files.forEach(({ parts, href }) => {
+  files.forEach(({ title, parts, href }) => {
     let location = tree
 
     const hrefSplit = href.split('#')
     const fileId = hrefSplit[hrefSplit.length - 1]
     const diffElement = getDiffElement(fileId)
 
-    if (filterItem(parts[parts.length - 1], filter)) {
+    if (filterItem(title, filter)) {
       if (diffElement) {
         diffElement.style.display = ''
       }
