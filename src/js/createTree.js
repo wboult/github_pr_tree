@@ -3,7 +3,7 @@ import { isFileViewed } from './lib'
 import File from './components/file'
 import Folder from './components/folder'
 
-export const createTree = ({ nodeLabel, list, href, hasComments, isDeleted, diffElement, diffStats, visibleElement, filter }) => {
+export const createTree = ({ nodeLabel, list, href, hasComments, isDeleted, diffElement, diffStats, visibleElement, filter, fileCount }) => {
   if (href) {
     const isVisible = (diffElement === visibleElement)
     const isViewed = isFileViewed(diffElement)
@@ -31,6 +31,7 @@ export const createTree = ({ nodeLabel, list, href, hasComments, isDeleted, diff
       nodeLabel={nodeLabel}
       isViewed={rawChildren.every(child => child.props.isViewed)}
       filter={filter}
+      fileCount={fileCount}
     >
       {rawChildren.map(node => (
         <span key={node.key}>
