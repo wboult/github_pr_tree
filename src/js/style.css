@@ -102,6 +102,12 @@
     padding: 5px 2px;
 }
 
+.__better_github_pr .toggle-viewed-button {
+    font-size: 10px;
+    white-space: nowrap;
+    padding-left: 0px;
+}
+
 .__better_github_pr .actions {
     display: flex;
     align-items: center;
@@ -111,6 +117,9 @@
 }
 .__better_github_pr .actions button {
     color: var(--color-fg-default, var(--bgpr-color));
+}
+.__better_github_pr .actions button:hover {
+    color: var(--color-accent-emphasis, var(--bgpr-color));
 }
 
 .__better_github_pr .actions-filter {
@@ -298,4 +307,18 @@
 
 .github-pr-folder-label {
     white-space: nowrap;
+}
+
+.rc-slider-mark-text {
+    white-space: nowrap;
+}
+
+div.rc-slider-mark span.rc-slider-mark-text {
+    display: none;
+}
+div.rc-slider-mark span.rc-slider-mark-text:first-child {
+    display: inline-block;
+}
+div.rc-slider-mark span.rc-slider-mark-text:last-child {
+    display: inline-block;
 }

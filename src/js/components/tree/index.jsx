@@ -2,6 +2,7 @@ import React from 'react'
 import Actions from '../actions'
 import { createFileTree, isElementVisible, StorageSync, getBrowserApi, isElementTargetAndVisible } from '../../lib'
 import { createTree } from '../../createTree'
+import { diffElementCheckbox } from '../../lib'
 
 const MIN_RESIZE_WIDTH = 55
 const MAX_RESIZE_WIDTH = 700
@@ -12,16 +13,17 @@ const fullScreenStorageKey = '__better_github_pr_full_screen'
 class Tree extends React.Component {
   constructor (props) {
     super(props)
-    this.handleReloadTree = this.props.reloadTree
 
     this.handleClose = this.handleClose.bind(this)
     this.onScroll = this.onScroll.bind(this)
     this.onResizerMouseDown = this.onResizerMouseDown.bind(this)
     this.onMouseMove = this.onMouseMove.bind(this)
     this.onMouseUp = this.onMouseUp.bind(this)
-    this.handleFullWidth = this.handleFullWidth.bind(this)
     this.filterFiles = this.filterFiles.bind(this)
     this.onClick = this.onClick.bind(this)
+    this.handleFilterDiffStats = this.handleFilterDiffStats.bind(this)
+    this.handleSetVisibleViewed = this.handleSetVisibleViewed.bind(this)
+    this.handleToggleHideViewed = this.handleToggleHideViewed.bind(this)
 
     this.isResizing = false
     this.resizeDelta = 0
@@ -98,6 +100,18 @@ class Tree extends React.Component {
     setTimeout(() => this.setWidth(newWidth), 0)
   }
 
+  diffStatsChangedManually = false
+
+  handleFilterDiffStats (diffStatsRange) {
+    if (diffStatsRange[0] > this.state.diffStatsRange[0] || diffStatsRange[1] < this.state.diffStatsRange[1]) {
+      this.diffStatsChangedManually = true
+    }
+    this.setState({
+      root: createFileTree(this.state.filter, diffStatsRange, this.state.hideViewed).tree,
+      diffStatsRange: diffStatsRange
+    })
+  }
+
   onMouseUp () {
     if (!this.isResizing) {
       return
@@ -126,6 +140,13 @@ class Tree extends React.Component {
     }
   }
 
+  handleToggleHideViewed(hideViewed) {
+    this.setState({
+      root: createFileTree(this.state.filter, this.state.diffStatsRange, hideViewed).tree,
+      hideViewed: hideViewed
+    })
+  }
+
   handleOptions () {
     window.open(getBrowserApi().runtime.getURL('options.html'))
   }
@@ -137,9 +158,17 @@ class Tree extends React.Component {
     this.setWidth(0, false)
   }
 
-  handleFullWidth () {
-    const fullScreenState = document.querySelector('body').classList.toggle('full-width')
-    window.localStorage.setItem(fullScreenStorageKey, fullScreenState)
+  handleSetVisibleViewed (viewed) {
+    return () => {
+      const visibleDiffElements = new Set(this.state.root.diffElements)
+      visibleDiffElements
+        .forEach(diffElement => {
+          const checkbox = diffElementCheckbox(diffElement)
+          if (checkbox.checked !== viewed) {
+            checkbox.click()
+          }
+        })
+    }
   }
 
   setInitialWidth () {
@@ -168,34 +197,53 @@ class Tree extends React.Component {
   filterFiles (event) {
     const filter = event.target.value || ''
     this.setState({
-      root: createFileTree(filter).tree,
+      root: createFileTree(filter, this.state.diffStatsRange, this.state.hideViewed).tree,
       filter
     })
   }
 
+  
+
   render () {
-    const { filter, show, visibleElement } = this.state
+    const { filter, diffStatsRange, show, visibleElement, hideViewed } = this.state
 
     if (!show) {
       return null
     }
 
     const filtered = createFileTree(filter).tree
+    const withDiffStatsFiltered = createFileTree(filter, diffStatsRange, hideViewed).tree
+    
+    const diffMarkers = new Set();
+    const addDiffStats = (file) => {
+      diffMarkers.add(file.diffStats.additions + file.diffStats.deletions)
+      file.list.forEach(addDiffStats)
+    }
 
+    filtered.list.forEach(addDiffStats)
+
+    if (!this.diffStatsChangedManually) {
+      this.state.diffStatsRange = [Math.min(...diffMarkers), Math.max(...diffMarkers)]
+    }
+    
     return (
       <div>
         <div className='_better_github_pr_resizer' ref={node => { this.resizer = node }} />
         <Actions
           filter={filter}
           filterFiles={this.filterFiles}
-          onFullWidth={this.handleFullWidth}
+          onSetVisibleViewed={this.handleSetVisibleViewed}
           onOptions={this.handleOptions}
           onClose={this.handleClose}
-          onReloadTree={this.handleReloadTree}
+          onFilterDiffStats={this.handleFilterDiffStats}
+          diffMarkers={Array.from(diffMarkers).sort( (a,b) => a-b )}
+          diffStatsRange={this.state.diffStatsRange}
+          toggleHideViewed={this.handleToggleHideViewed}
+          hideViewed={hideViewed}
         />
         <div className='file-container'>
           <div>
-            {filtered.list.map(node => (
+            {withDiffStatsFiltered.list.map(node => (
               <span key={node.nodeLabel}>
                 {createTree({ ...node, visibleElement, filter })}
               </span>

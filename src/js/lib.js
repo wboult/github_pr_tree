@@ -13,6 +13,8 @@ export const createRootElement = () => {
   return element
 }
 
+export const diffElementCheckbox = (diffElement) => diffElement.querySelector("input[type='checkbox']")
+
 const parseChangeNumber = (n) => {
   if (!n.replace) return 0
   const number = parseInt(n.replace(',', ''), 10)
@@ -101,7 +103,7 @@ export const folderConcat = (node) => {
   return node
 }
 
-export const createFileTree = (filter = EMPTY_FILTER) => {
+export const createFileTree = (filter = EMPTY_FILTER, diffStatsRange = null, hideViewed = false) => {
   const fileInfo = [...document.querySelectorAll('.file-info a.Link--primary')]
   const files = fileInfo.map(({ title, href }, idx) => {
     title = getCurrentFileLocation(title)
@@ -121,7 +123,28 @@ export const createFileTree = (filter = EMPTY_FILTER) => {
     const fileId = hrefSplit[hrefSplit.length - 1]
     const diffElement = getDiffElement(fileId)
 
-    if (filterItem(title, filter)) {
+    let diffStatsInRange = true
+    let diffStats
+    let viewed = false
+
+    if (diffElement) {
+      diffStats = getDiffStatsForDiffElement(diffElement)
+      viewed = diffElementCheckbox(diffElement).checked
+      const diffTotal = diffStats.additions + diffStats.deletions
+      if (
+        diffStatsRange && 
+        diffStatsRange.length ==2 && 
+        (diffTotal < diffStatsRange[0] || diffTotal > diffStatsRange[1])
+      ) {
+        diffStatsInRange = false
+      }
+    }
+
+    if (
+      filterItem(title, filter) && 
+      diffStatsInRange && 
+      (!hideViewed || !viewed)
+    ) {
       if (diffElement) {
         diffElement.style.display = ''
       }
@@ -141,7 +164,7 @@ export const createFileTree = (filter = EMPTY_FILTER) => {
               isDeleted,
               diffElement,
               fileCount: 1,
-              diffStats: getDiffStatsForDiffElement(diffElement)
+              diffStats: diffStats
             }
             location.list.push(node)
           }
